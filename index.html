@@ -109,6 +109,8 @@
     .panel-scene { width:100%; height:90px; display:block; flex-shrink:0; }
 
     .drop-zone { margin:0.5rem 0.75rem; min-height:100px; flex:1; border:2.5px dashed #C8C8C8; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.45); position:relative; overflow:hidden; }
+    .drop-zone .dz-content { display:flex; align-items:center; justify-content:center; width:100%; height:100%; min-height:90px; }
+    .drop-zone .dz-content svg { max-height:90px; max-width:82px; display:block; }
     .drop-zone:hover,.drop-zone.drag-over { border-color:var(--teal); background:rgba(78,205,196,0.08); border-style:solid; }
     .day-panel:nth-child(4) .drop-zone { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.2); }
     .drop-zone.has-asset { border-style:solid; border-color:#D0D0D0; background:transparent; }
@@ -149,7 +151,8 @@
     .plan-drop { margin:0 1rem; height:110px; border:2.5px dashed #D0D0D0; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; background:#FAFAFA; position:relative; overflow:hidden; flex-shrink:0; }
     .plan-drop:hover,.plan-drop.drag-over { border-color:var(--teal); background:rgba(78,205,196,0.07); border-style:solid; }
     .plan-drop.has-asset { border-style:solid; border-color:#E0E0E0; background:white; }
-    .plan-drop .dz-content svg { max-height:88px; max-width:90px; }
+    .plan-drop .dz-content { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+    .plan-drop .dz-content svg { max-height:88px; max-width:90px; display:block; }
     .plan-text { margin:0 1rem; width:calc(100% - 2rem); min-height:3.5rem; border:2px solid #E8E8E8; border-radius:10px; background:#FAFAFA; padding:0.65rem 0.85rem; font-family:'Nunito',sans-serif; font-size:0.88rem; color:var(--ink); resize:none; outline:none; transition:border-color 0.2s; }
     .plan-text:focus { border-color:var(--teal); background:white; }
     .plan-text::placeholder { color:#C0C0C0; font-style:italic; }
@@ -828,11 +831,16 @@ function place(zone,id){
   const svg=SVG[id];if(!svg)return;
   let c=zone.querySelector('.dz-content');if(c)c.remove();
   const h=zone.querySelector('.dz-hint');if(h)h.style.display='none';
-  const w=document.createElement('div');w.className='dz-content';w.innerHTML=svg;
-  const s=w.querySelector('svg');s.style.maxHeight='95px';s.style.maxWidth='85px';
+  const w=document.createElement('div');
+  w.className='dz-content';
+  w.style.cssText='display:flex;align-items:center;justify-content:center;width:100%;height:100%;';
+  w.innerHTML=svg;
+  const s=w.querySelector('svg');
+  if(s){s.style.maxHeight='95px';s.style.maxWidth='85px';s.style.display='block';}
   zone.insertBefore(w,zone.querySelector('.remove-btn'));
   zone.classList.add('has-asset');zone.dataset.placed=id;
-  zone.querySelector('.remove-btn').onclick=e=>{e.stopPropagation();w.remove();if(h)h.style.display='';zone.classList.remove('has-asset');delete zone.dataset.placed};
+  const rb=zone.querySelector('.remove-btn');
+  if(rb)rb.onclick=e=>{e.stopPropagation();w.remove();if(h)h.style.display='';zone.classList.remove('has-asset');delete zone.dataset.placed};
 }
 
 document.querySelectorAll('.drop-zone').forEach(z=>{
