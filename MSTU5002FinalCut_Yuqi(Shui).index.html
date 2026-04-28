@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scroll Free — An Interactive Story</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,900;1,400&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ink: #1A1A2E; --paper: #FFF9F0; --yellow: #FFD93D; --pink: #FF6B9D;
+      --teal: #4ECDC4; --blue: #74B9FF; --orange: #FF9F43; --red: #FF6B6B;
+      --green: #A8E6CF; --purple: #A29BFE; --gray: #B2BEC3; --dark-bg: #16213E;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Nunito', sans-serif; background: var(--paper); color: var(--ink); overflow-x: hidden; }
+
+    /* HERO — TikTok single-column fullscreen */
+    .hero { min-height:100vh; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; position:relative; overflow:hidden; text-align:center; padding:0; gap:0; }
+    .feed-bg { position:absolute; inset:0; overflow:hidden; }
+    .tiktok-strip { position:absolute; inset:0; display:flex; flex-direction:column; transition:transform 0.55s cubic-bezier(0.25,0.46,0.45,0.94); will-change:transform; }
+    .tiktok-card { width:100%; height:100vh; flex-shrink:0; position:relative; overflow:hidden; }
+    .tk-bg { position:absolute; inset:0; }
+    .tk-sidebar { position:absolute; right:12px; bottom:140px; display:flex; flex-direction:column; align-items:center; gap:20px; z-index:4; }
+    .tk-sidebar-btn { display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .tk-sidebar-icon { width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.12); display:flex; align-items:center; justify-content:center; font-size:22px; }
+    .tk-sidebar-count { font-size:11px; color:rgba(255,255,255,0.85); font-weight:700; }
+    .tk-avatar-wrap { position:relative; width:44px; height:44px; margin-bottom:4px; }
+    .tk-avatar-circle { width:44px; height:44px; border-radius:50%; border:2px solid white; overflow:hidden; }
+    .tk-plus-badge { position:absolute; bottom:-8px; left:50%; transform:translateX(-50%); background:#FF2D55; color:white; width:18px; height:18px; border-radius:50%; font-size:14px; font-weight:900; display:flex; align-items:center; justify-content:center; border:1.5px solid #000; line-height:1; }
+    .tk-bottom { position:absolute; left:14px; right:70px; bottom:90px; z-index:4; text-align:left; }
+    .tk-username { font-size:15px; font-weight:700; color:white; margin-bottom:6px; text-shadow:0 1px 6px rgba(0,0,0,0.7); }
+    .tk-caption { font-size:13px; color:rgba(255,255,255,0.9); line-height:1.5; text-shadow:0 1px 4px rgba(0,0,0,0.6); margin-bottom:6px; }
+    .tk-hashtags { font-size:12px; color:white; font-weight:700; opacity:.9; }
+    .tk-music { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; color:rgba(255,255,255,0.7); }
+    .tk-disc { display:inline-block; animation:spinDisc 3s linear infinite; }
+    @keyframes spinDisc { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    .tk-topbar { position:absolute; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; justify-content:center; padding:44px 16px 10px; gap:20px; background:linear-gradient(to bottom,rgba(0,0,0,0.4),transparent); }
+    .tk-tab { font-size:15px; font-weight:700; color:rgba(255,255,255,0.4); }
+    .tk-tab.active { color:white; border-bottom:2px solid white; padding-bottom:2px; }
+    .tk-navbar { position:absolute; bottom:0; left:0; right:0; height:75px; background:rgba(0,0,0,0.88); display:flex; align-items:center; justify-content:space-around; z-index:6; border-top:0.5px solid rgba(255,255,255,0.1); }
+    .tk-nav-item { display:flex; flex-direction:column; align-items:center; gap:2px; font-size:9px; color:rgba(255,255,255,0.45); }
+    .tk-nav-item.active { color:white; }
+    .tk-nav-icon { font-size:22px; line-height:1.2; }
+    .tk-post-btn { background:linear-gradient(to right,#69C9D0,#EE1D52); width:40px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:white; font-size:20px; font-weight:900; }
+    .hero-overlay { position:absolute; inset:0; background:linear-gradient(to bottom,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0) 15%,rgba(0,0,0,0) 45%,rgba(0,0,0,0.65) 75%,rgba(0,0,0,0.96) 100%); pointer-events:none; z-index:3; }
+    .hero-content { position:relative; z-index:6; width:100%; padding:1.5rem 2rem 88px; display:flex; flex-direction:column; align-items:center; gap:1rem; }
+    .timer-box { background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:0.65rem 1.5rem; backdrop-filter:blur(12px); }
+    .timer-label { color:rgba(255,255,255,0.45); font-size:0.78rem; }
+    .timer-value { color:var(--yellow); font-family:'Caveat',cursive; font-size:2.1rem; font-weight:700; line-height:1.1; }
+    .hero h1 { font-size:clamp(1.9rem,6vw,3.4rem); font-weight:900; color:white; line-height:1.1; max-width:480px; text-shadow:0 2px 16px rgba(0,0,0,0.9); }
+    .hero h1 span { color:var(--yellow); }
+    .hero-sub { color:rgba(255,255,255,0.8); font-size:0.98rem; max-width:380px; text-shadow:0 1px 8px rgba(0,0,0,0.7); }
+    .hero-top-badge { position:absolute; top:10px; left:50%; transform:translateX(-50%); z-index:7; background:rgba(255,45,85,0.22); border:1px solid rgba(255,45,85,0.5); border-radius:20px; padding:0.25rem 0.9rem; font-size:0.7rem; color:#FF9F9F; font-weight:700; letter-spacing:.04em; white-space:nowrap; backdrop-filter:blur(6px); }
+    .scroll-hint { position:absolute; bottom:86px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.28); font-size:0.76rem; display:flex; flex-direction:column; align-items:center; gap:0.3rem; animation:nudge 2s ease-in-out infinite; z-index:8; }
+    @keyframes nudge { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(7px)} }
+
+    /* REVEAL */
+    .reveal { opacity:0; transform:translateY(28px); transition:opacity 0.65s ease,transform 0.65s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+
+    /* SECTION BASE */
+    section { padding:5rem 1.5rem; }
+    .sec-title { font-size:clamp(1.7rem,4vw,2.8rem); font-weight:900; text-align:center; margin-bottom:0.6rem; }
+    .sec-sub { text-align:center; color:#636e72; font-size:1rem; max-width:560px; margin:0 auto 3rem; font-style:italic; line-height:1.6; }
+
+    /* S2 */
+    .s2 { background:white; }
+    .s2-panels { max-width:820px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; border:3px solid var(--ink); }
+    .s2-panel { border:2px solid var(--ink); padding:1.5rem; display:flex; flex-direction:column; align-items:center; gap:0.6rem; }
+    .panel-caption { font-family:'Caveat',cursive; font-size:1.05rem; color:#636e72; text-align:center; line-height:1.4; }
+    .stat-callout { margin:2rem auto 0; max-width:500px; text-align:center; color:#636e72; font-size:0.95rem; line-height:1.7; }
+    .stat-callout strong { color:var(--ink); }
+
+    /* S3 */
+    .s3 { background:var(--ink); }
+    .s3 .sec-title { color:white; } .s3 .sec-sub { color:rgba(255,255,255,0.55); }
+    .loop-wrap { max-width:420px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:0.4rem; }
+    .loop-card { border:2px solid; border-radius:14px; padding:0.9rem 2rem; text-align:center; width:100%; }
+    .loop-card .lc-emoji { font-size:1.8rem; margin-bottom:0.2rem; }
+    .loop-card .lc-title { font-weight:700; font-size:1rem; color:white; }
+    .loop-card .lc-desc { font-size:0.8rem; color:rgba(255,255,255,0.5); }
+    .loop-arrow { font-size:1.4rem; color:var(--yellow); animation:pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6} }
+    .loop-note { text-align:center; margin-top:1.5rem; color:rgba(255,255,255,0.35); font-style:italic; font-size:0.85rem; }
+
+    /* ═══════ S4 INTERACTIVE COMIC BUILDER ═══════ */
+    .s4 { background:var(--paper); }
+    .picker-bar { display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap; max-width:1060px; margin:0 auto 2.5rem; background:white; border:2.5px solid var(--ink); border-radius:16px; padding:0.85rem 1.25rem; box-shadow:4px 4px 0 var(--ink); }
+    .picker-label { font-weight:700; font-size:0.82rem; color:#636e72; white-space:nowrap; border-right:2px solid #eee; padding-right:0.75rem; margin-right:0.1rem; }
+    .picker-hint { font-size:0.75rem; color:#B2BEC3; font-style:italic; margin-left:auto; }
+    .asset-item { width:68px; height:82px; border:2.5px solid #E0E0E0; border-radius:12px; cursor:pointer; background:#FAFAFA; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; transition:all 0.2s; position:relative; user-select:none; flex-shrink:0; }
+    .asset-item:hover { border-color:var(--purple); transform:translateY(-3px); box-shadow:0 6px 16px rgba(162,155,254,0.25); }
+    .asset-item.selected { border:2.5px solid var(--teal); background:rgba(78,205,196,0.07); box-shadow:0 0 0 4px rgba(78,205,196,0.25); transform:translateY(-3px); }
+    .asset-item.selected::after { content:'✓'; position:absolute; top:-9px; right:-9px; background:var(--teal); color:white; width:20px; height:20px; border-radius:50%; font-size:11px; font-weight:900; display:flex; align-items:center; justify-content:center; border:2px solid white; }
+    .asset-item svg { width:46px; height:58px; }
+    .asset-item.prop svg { width:44px; height:44px; }
+    .asset-name { font-size:0.65rem; color:#636e72; font-weight:700; }
+
+    .day-strip { max-width:1060px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); border:3px solid var(--ink); }
+    .day-panel { border:2px solid var(--ink); display:flex; flex-direction:column; background:white; opacity:0; transform:translateY(20px); transition:opacity 0.55s,transform 0.55s; }
+    .day-panel.visible { opacity:1; transform:translateY(0); }
+    .day-panel:nth-child(1) { background:#FFF9E6; }
+    .day-panel:nth-child(2) { background:#E8F5FF; }
+    .day-panel:nth-child(3) { background:#FFE8F5; }
+    .day-panel:nth-child(4) { background:#1A1A2E; }
+    .panel-time-edit { font-family:'Caveat',cursive; font-weight:700; font-size:1.1rem; padding:0.6rem 0.75rem 0; border:none; background:transparent; outline:none; width:100%; cursor:text; color:var(--ink); }
+    .day-panel:nth-child(4) .panel-time-edit { color:rgba(255,255,255,0.7); }
+    .panel-scene { width:100%; height:90px; display:block; flex-shrink:0; }
+
+    .drop-zone { margin:0.5rem 0.75rem; min-height:100px; flex:1; border:2.5px dashed #C8C8C8; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; background:rgba(255,255,255,0.45); position:relative; overflow:hidden; }
+    .drop-zone:hover,.drop-zone.drag-over { border-color:var(--teal); background:rgba(78,205,196,0.08); border-style:solid; }
+    .day-panel:nth-child(4) .drop-zone { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.2); }
+    .drop-zone.has-asset { border-style:solid; border-color:#D0D0D0; background:transparent; }
+    .dz-hint { font-family:'Caveat',cursive; font-size:0.88rem; color:#C0C0C0; text-align:center; line-height:1.5; pointer-events:none; padding:0.5rem; }
+    .day-panel:nth-child(4) .dz-hint { color:rgba(255,255,255,0.25); }
+    .dz-content { display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+    .dz-content svg { max-height:95px; max-width:100%; }
+    .remove-btn { position:absolute; top:5px; right:5px; width:22px; height:22px; border-radius:50%; background:rgba(255,107,107,0.88); color:white; border:2px solid white; font-size:13px; font-weight:900; cursor:pointer; display:none; align-items:center; justify-content:center; line-height:1; z-index:5; padding:0; }
+    .drop-zone.has-asset .remove-btn { display:flex; }
+    .editable-caption { width:100%; border:none; background:transparent; outline:none; resize:none; font-family:'Caveat',cursive; font-size:0.95rem; color:#636e72; padding:0.4rem 0.75rem 0.75rem; min-height:2.4rem; transition:background 0.2s; line-height:1.4; }
+    .editable-caption:focus { background:rgba(255,255,255,0.6); }
+    .editable-caption::placeholder { color:#D0C8C0; }
+    .day-panel:nth-child(4) .editable-caption { color:rgba(255,255,255,0.5); }
+
+    .has-selection .drop-zone:not(.has-asset) { border-color:var(--teal); border-style:solid; cursor:crosshair; }
+
+    /* S5 DRAG REVEAL */
+    .s5 { background:#EEF2F7; }
+    .drag-wrap { max-width:680px; margin:0 auto; position:relative; height:340px; border:3px solid var(--ink); border-radius:16px; overflow:hidden; cursor:ew-resize; user-select:none; }
+    .drag-side { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:0.75rem; }
+    .drag-left { background:#2D3436; } .drag-right { background:#E0FFF7; clip-path:inset(0 50% 0 0); }
+    .drag-label { font-family:'Caveat',cursive; font-size:1.4rem; font-weight:700; text-align:center; }
+    .drag-left .drag-label { color:rgba(255,255,255,0.8); } .drag-right .drag-label { color:var(--ink); }
+    .drag-sub { font-size:0.82rem; font-style:italic; }
+    .drag-left .drag-sub { color:rgba(255,255,255,0.4); } .drag-right .drag-sub { color:#636e72; }
+    .drag-handle { position:absolute; top:0; bottom:0; left:50%; width:4px; background:var(--yellow); transform:translateX(-50%); z-index:10; cursor:ew-resize; }
+    .drag-handle::after { content:'◀  ▶'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--yellow); color:var(--ink); font-size:0.62rem; font-weight:900; padding:0.5rem 0.3rem; border-radius:20px; white-space:nowrap; }
+    .drag-hint { text-align:center; margin-top:1.2rem; color:#636e72; font-style:italic; font-size:0.9rem; }
+
+    /* ═══════ S6 PHONE-FREE PLAN BUILDER ═══════ */
+    .s6 { background:white; }
+    .plan-grid { max-width:1060px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+    .plan-card { border:3px solid var(--ink); border-radius:16px; background:white; display:flex; flex-direction:column; gap:0.75rem; overflow:hidden; box-shadow:5px 5px 0 var(--ink); transition:transform 0.2s; }
+    .plan-card:hover { transform:translateY(-3px); }
+    .plan-card-header { padding:1rem 1.25rem 0.6rem; border-bottom:2px solid #f0f0f0; display:flex; align-items:center; gap:0.5rem; }
+    .plan-card-icon { font-size:1.6rem; }
+    .plan-card-title { font-family:'Caveat',cursive; font-size:1.5rem; font-weight:700; }
+    .plan-drop { margin:0 1rem; height:110px; border:2.5px dashed #D0D0D0; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; background:#FAFAFA; position:relative; overflow:hidden; flex-shrink:0; }
+    .plan-drop:hover,.plan-drop.drag-over { border-color:var(--teal); background:rgba(78,205,196,0.07); border-style:solid; }
+    .plan-drop.has-asset { border-style:solid; border-color:#E0E0E0; background:white; }
+    .plan-drop .dz-content svg { max-height:88px; max-width:90px; }
+    .plan-text { margin:0 1rem; width:calc(100% - 2rem); min-height:3.5rem; border:2px solid #E8E8E8; border-radius:10px; background:#FAFAFA; padding:0.65rem 0.85rem; font-family:'Nunito',sans-serif; font-size:0.88rem; color:var(--ink); resize:none; outline:none; transition:border-color 0.2s; }
+    .plan-text:focus { border-color:var(--teal); background:white; }
+    .plan-text::placeholder { color:#C0C0C0; font-style:italic; }
+    .commit-btn { margin:0 1rem 1rem; padding:0.65rem 1rem; border:2.5px solid var(--ink); border-radius:10px; background:white; font-family:'Nunito',sans-serif; font-weight:700; font-size:0.88rem; cursor:pointer; transition:all 0.25s; display:flex; align-items:center; justify-content:center; gap:0.4rem; }
+    .commit-btn:hover { background:#f5f5f5; }
+    .commit-btn.committed { background:var(--teal); border-color:var(--teal); color:white; }
+
+    /* S7 RECORD BOARD */
+    .s7 { background:var(--ink); }
+    .s7 .sec-title { color:white; } .s7 .sec-sub { color:rgba(255,255,255,0.5); }
+    .record-board { max-width:580px; margin:0 auto; background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.12); border-radius:22px; padding:2rem; }
+    .counter-wrap { text-align:center; margin-bottom:1.5rem; }
+    .counter-num { font-size:5rem; font-weight:900; color:var(--yellow); line-height:1; transition:transform 0.2s; }
+    .counter-lbl { color:rgba(255,255,255,0.45); font-size:0.85rem; margin-top:0.4rem; }
+    .btn-row { display:flex; justify-content:center; gap:1rem; margin-bottom:1.25rem; }
+    .btn-cnt { width:58px; height:58px; border-radius:50%; border:none; font-size:1.8rem; font-weight:900; cursor:pointer; transition:transform 0.15s; font-family:'Nunito',sans-serif; }
+    .btn-cnt:hover{transform:scale(1.1)} .btn-cnt:active{transform:scale(0.9)}
+    .btn-plus{background:var(--teal);color:white} .btn-minus{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4)}
+    .msg-box { text-align:center; font-family:'Caveat',cursive; font-size:1.25rem; color:var(--yellow); min-height:2rem; margin-bottom:1.25rem; }
+    .badges { display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.75rem; }
+    .badge { width:56px; height:56px; border-radius:50%; border:2px dashed rgba(255,255,255,0.18); background:rgba(255,255,255,0.04); display:flex; align-items:center; justify-content:center; font-size:1.5rem; opacity:0.3; transition:opacity 0.5s,transform 0.5s; }
+    .badge.earned { opacity:1; border:2px solid var(--yellow); background:rgba(255,217,61,0.12); animation:badgePop 0.5s; }
+    @keyframes badgePop { 0%{transform:scale(0.4) rotate(-20deg)} 70%{transform:scale(1.25) rotate(5deg)} 100%{transform:scale(1)} }
+    .log-section { border-top:1px solid rgba(255,255,255,0.1); padding-top:1.5rem; }
+    .log-row { display:flex; gap:0.5rem; margin-bottom:1rem; }
+    .log-input { flex:1; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18); border-radius:10px; padding:0.7rem 1rem; color:white; font-family:'Nunito',sans-serif; font-size:0.9rem; }
+    .log-input::placeholder{color:rgba(255,255,255,0.28)} .log-input:focus{outline:none;border-color:var(--teal)}
+    .btn-add { background:var(--teal); color:white; border:none; border-radius:10px; padding:0.7rem 1.1rem; font-family:'Nunito',sans-serif; font-weight:700; cursor:pointer; font-size:0.9rem; }
+    .log-entries { display:flex; flex-direction:column; gap:0.45rem; max-height:200px; overflow-y:auto; }
+    .log-entry { background:rgba(255,255,255,0.05); border-left:3px solid var(--teal); padding:0.5rem 0.9rem; border-radius:0 8px 8px 0; font-size:0.88rem; color:rgba(255,255,255,0.8); animation:slideIn 0.3s; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+    .log-time { font-size:0.72rem; color:rgba(255,255,255,0.3); margin-top:0.15rem; }
+
+    /* FOOTER */
+    .s8 { background:#0D1117; color:white; text-align:center; padding:5rem 2rem; }
+    .s8-label { font-family:'Caveat',cursive; font-size:1rem; color:rgba(255,255,255,0.3); margin-bottom:0.4rem; }
+    .s8-title { font-size:clamp(2rem,5vw,3rem); font-weight:900; color:var(--yellow); margin-bottom:0.75rem; }
+    .s8-desc { color:rgba(255,255,255,0.55); max-width:560px; margin:0 auto 3rem; line-height:1.7; font-size:0.95rem; }
+    .meta-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:2rem; max-width:860px; margin:0 auto; text-align:left; }
+    .meta-item h3 { font-size:0.7rem; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.3); margin-bottom:0.5rem; }
+    .meta-item p { color:rgba(255,255,255,0.7); font-size:0.88rem; line-height:1.65; }
+
+    /* NOTIFICATION */
+    .notif { position:fixed; top:1.25rem; right:1.25rem; background:white; border:2px solid var(--ink); border-radius:12px; padding:0.65rem 1.1rem; box-shadow:4px 4px 0 var(--ink); font-weight:700; font-size:0.85rem; z-index:999; opacity:0; transform:translateY(-10px); transition:opacity 0.3s,transform 0.3s; pointer-events:none; color:var(--ink); }
+    .notif.show { opacity:1; transform:translateY(0); }
+
+    @media(max-width:760px) {
+      .day-strip{grid-template-columns:1fr 1fr} .plan-grid{grid-template-columns:1fr;max-width:420px} .s2-panels{grid-template-columns:1fr} .drag-wrap{height:280px} .picker-hint{display:none}
+    }
+    @media(max-width:440px) { .day-strip{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<div class="notif" id="notif"></div>
+
+<!-- ══ SECTION 1 · HERO ══ -->
+<section class="hero">
+  <div class="feed-bg" id="feedBg"></div>
+  <div class="hero-overlay"></div>
+
+  <!-- TikTok top bar -->
+  <div class="tk-topbar" style="z-index:7">
+    <span class="tk-tab">Following</span>
+    <span class="tk-tab active">For You</span>
+    <span class="tk-tab">LIVE</span>
+  </div>
+
+  <div class="hero-top-badge" style="top:96px">📱 avg. screen time: 4 hrs 37 min / day</div>
+
+  <!-- overlay text content -->
+  <div class="hero-content">
+    <div class="timer-box">
+      <div class="timer-label">You've been here for...</div>
+      <div class="timer-value" id="heroTimer">00:00</div>
+      <div class="timer-label">(just since opening this page)</div>
+    </div>
+    <h1>Are you feeling<br><span>the same?</span></h1>
+    <p class="hero-sub">You didn't mean to spend 3 hours scrolling. But here you are. Again.</p>
+  </div>
+
+  <!-- TikTok bottom nav -->
+  <div class="tk-navbar" style="z-index:7">
+    <div class="tk-nav-item active"><div class="tk-nav-icon">🏠</div>Home</div>
+    <div class="tk-nav-item"><div class="tk-nav-icon">🔍</div>Discover</div>
+    <div class="tk-nav-item"><div class="tk-post-btn">+</div></div>
+    <div class="tk-nav-item"><div class="tk-nav-icon">💬</div>Inbox</div>
+    <div class="tk-nav-item"><div class="tk-nav-icon">👤</div>Profile</div>
+  </div>
+
+  <div class="scroll-hint"><span>Scroll to explore</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- ══ SECTION 2 · FAMILIAR ══ -->
+<section class="s2">
+  <div class="sec-title reveal">📱 Sound familiar?</div>
+  <div class="sec-sub reveal">"I'll just check for 5 minutes." — said 3 hours ago.</div>
+  <div class="s2-panels reveal">
+    <div class="s2-panel" style="background:#FFF9E6">
+      <svg viewBox="0 0 120 110" width="100%" style="max-height:130px">
+        <ellipse cx="60" cy="38" rx="20" ry="20" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+        <ellipse cx="53" cy="41" rx="3" ry="4" fill="#1A1A2E"/><ellipse cx="67" cy="41" rx="3" ry="4" fill="#1A1A2E"/>
+        <ellipse cx="60" cy="50" rx="4" ry="2.5" fill="#FF6B9D" stroke="#1A1A2E" stroke-width="1.2"/>
+        <path d="M45 58 Q60 60 75 58 L78 85 Q60 88 42 85 Z" fill="#74B9FF" stroke="#1A1A2E" stroke-width="2"/>
+        <line x1="45" y1="66" x2="32" y2="80" stroke="#FFEAA7" stroke-width="5" stroke-linecap="round"/>
+        <line x1="75" y1="66" x2="88" y2="80" stroke="#FFEAA7" stroke-width="5" stroke-linecap="round"/>
+        <rect x="38" y="74" width="44" height="28" rx="4" fill="#0D1117" stroke="#1A1A2E" stroke-width="2"/>
+        <rect x="40" y="76" width="40" height="24" rx="2.5" fill="#4A90E2"/>
+        <ellipse cx="100" cy="22" rx="18" ry="12" fill="white" stroke="#FF6B6B" stroke-width="1.5"/>
+        <text x="100" y="20" text-anchor="middle" font-size="8" font-weight="bold" fill="#FF6B6B" font-family="Nunito,sans-serif">4 hrs</text>
+        <text x="100" y="28" text-anchor="middle" font-size="6" fill="#636e72" font-family="Nunito,sans-serif">today</text>
+        <polygon points="86,30 80,38 90,35" fill="white" stroke="#FF6B6B" stroke-width="1.5"/>
+      </svg>
+      <div class="panel-caption">"Just 5 more minutes…"</div>
+    </div>
+    <div class="s2-panel" style="background:#E8F5FF">
+      <svg viewBox="0 0 120 110" width="100%" style="max-height:130px">
+        <ellipse cx="40" cy="40" rx="17" ry="17" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+        <ellipse cx="35" cy="38" rx="3" ry="4" fill="#1A1A2E"/><circle cx="37" cy="36" r="1.2" fill="white"/>
+        <ellipse cx="45" cy="38" rx="3" ry="4" fill="#1A1A2E"/><circle cx="47" cy="36" r="1.2" fill="white"/>
+        <ellipse cx="40" cy="48" rx="5" ry="3" fill="#FF6B9D" stroke="#1A1A2E" stroke-width="1"/>
+        <ellipse cx="57" cy="30" rx="2.5" ry="3.5" fill="#74B9FF" stroke="#1A1A2E" stroke-width="1"/>
+        <rect x="27" y="57" width="26" height="22" rx="4" fill="#FF6B9D" stroke="#1A1A2E" stroke-width="2"/>
+        <ellipse cx="90" cy="35" rx="28" ry="26" fill="#FFF9F0" stroke="#1A1A2E" stroke-width="1.5" stroke-dasharray="4,2.5"/>
+        <text x="90" y="26" text-anchor="middle" font-size="15">🌅</text>
+        <text x="78" y="44" text-anchor="middle" font-size="14">👫</text>
+        <text x="100" y="46" text-anchor="middle" font-size="13">🍜</text>
+        <circle cx="63" cy="56" r="2" fill="#B2BEC3"/><circle cx="68" cy="51" r="3" fill="#B2BEC3"/><circle cx="75" cy="46" r="4" fill="#B2BEC3"/>
+      </svg>
+      <div class="panel-caption">Meanwhile, life was happening.</div>
+    </div>
+  </div>
+  <p class="stat-callout reveal">Americans check their phones <strong>up to 205 times a day</strong> — each time just about 1 minute 15 seconds.<br>That's hundreds of tiny interruptions. This is a story about what that costs us.</p>
+</section>
+
+<!-- ══ SECTION 3 · DOPAMINE LOOP ══ -->
+<section class="s3">
+  <div class="sec-title reveal">The Trap Is By Design</div>
+  <div class="sec-sub reveal">Your brain isn't weak. The app is engineered to hook you.</div>
+  <div class="loop-wrap reveal">
+    <div class="loop-card" style="background:rgba(255,107,107,0.14);border-color:#FF6B6B"><div class="lc-emoji">😑</div><div class="lc-title">Boredom / Stress</div><div class="lc-desc">A quiet moment feels uncomfortable</div></div>
+    <div class="loop-arrow">↓</div>
+    <div class="loop-card" style="background:rgba(74,144,226,0.14);border-color:#4A90E2"><div class="lc-emoji">📱</div><div class="lc-title">Pick Up Phone</div><div class="lc-desc">Almost automatic. Almost unconscious.</div></div>
+    <div class="loop-arrow">↓</div>
+    <div class="loop-card" style="background:rgba(255,159,67,0.14);border-color:#FF9F43"><div class="lc-emoji">👆</div><div class="lc-title">Scroll & Scroll</div><div class="lc-desc">Infinite content, infinite stimulation</div></div>
+    <div class="loop-arrow">↓</div>
+    <div class="loop-card" style="background:rgba(255,107,157,0.14);border-color:#FF6B9D"><div class="lc-emoji">⚡</div><div class="lc-title">Dopamine Hit</div><div class="lc-desc">A like, a funny clip, a notification ping</div></div>
+    <div class="loop-arrow" style="animation:none">↓ then...</div>
+    <div class="loop-card" style="background:rgba(255,107,107,0.14);border-color:#FF6B6B;border-style:dashed"><div class="lc-emoji">😑</div><div class="lc-title">Back to Boredom</div><div class="lc-desc">But slightly more numb than before.</div></div>
+    <p class="loop-note">This cycle isn't your fault — but you can choose to break it.</p>
+  </div>
+</section>
+
+<!-- ══ SECTION 4 · BUILD YOUR DAY — COMIC BUILDER ══ -->
+<section class="s4">
+  <div class="sec-title reveal">Is This Your Day?</div>
+  <div class="sec-sub reveal">Which of these habits sound like you? Click one, then click the panel it belongs to. Edit the captions to make it your own story.</div>
+
+  <div class="picker-bar reveal" id="charPicker">
+    <span class="picker-label">Your habits →</span>
+
+    <!-- H1: Wake up → phone -->
+    <div class="asset-item" data-asset-id="h1" data-asset-type="habit" title="Wake up & scroll">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Bed -->
+        <rect x="4" y="38" width="52" height="28" rx="5" fill="#A8E6CF" stroke="#1A1A2E" stroke-width="1.8"/>
+        <rect x="4" y="30" width="20" height="14" rx="3" fill="white" stroke="#1A1A2E" stroke-width="1.8"/>
+        <!-- Head on pillow -->
+        <ellipse cx="40" cy="38" rx="11" ry="11" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.8"/>
+        <!-- Drowsy eyes -->
+        <line x1="35" y1="37" x2="38" y2="37" stroke="#1A1A2E" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="42" y1="37" x2="45" y2="37" stroke="#1A1A2E" stroke-width="1.8" stroke-linecap="round"/>
+        <!-- Phone above face -->
+        <rect x="30" y="14" width="20" height="14" rx="2.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+        <rect x="32" y="16" width="16" height="10" rx="1.5" fill="#4A90E2"/>
+        <!-- Blue glow -->
+        <ellipse cx="40" cy="27" rx="14" ry="5" fill="#4A90E2" opacity=".15"/>
+      </svg>
+      <span class="asset-name">Wake & scroll</span>
+    </div>
+
+    <!-- H2: Phone at meals -->
+    <div class="asset-item" data-asset-id="h2" data-asset-type="habit" title="Phone at meals">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Table -->
+        <rect x="6" y="44" width="48" height="7" rx="2" fill="#DEB887" stroke="#1A1A2E" stroke-width="1.8"/>
+        <!-- Bowl of food -->
+        <ellipse cx="22" cy="42" rx="13" ry="5" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.5"/>
+        <text x="22" y="45" text-anchor="middle" font-size="10">🍜</text>
+        <!-- Steam (faded = cold) -->
+        <path d="M16 36 Q17 32 16 28" stroke="#CCC" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <!-- Phone propped -->
+        <rect x="38" y="26" width="14" height="20" rx="2.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+        <rect x="40" y="28" width="10" height="16" rx="1.5" fill="#4A90E2"/>
+        <line x1="43" y1="31" x2="47" y2="31" stroke="white" stroke-width="1" opacity=".7"/>
+        <line x1="43" y1="34" x2="47" y2="34" stroke="white" stroke-width="1" opacity=".5"/>
+        <line x1="43" y1="37" x2="47" y2="37" stroke="white" stroke-width="1" opacity=".5"/>
+        <!-- Head looking at phone -->
+        <ellipse cx="45" cy="18" rx="10" ry="10" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.8"/>
+        <ellipse cx="41" cy="20" rx="2" ry="2.5" fill="#1A1A2E"/>
+        <ellipse cx="49" cy="20" rx="2" ry="2.5" fill="#1A1A2E"/>
+      </svg>
+      <span class="asset-name">Phone at meals</span>
+    </div>
+
+    <!-- H3: Together but alone -->
+    <div class="asset-item" data-asset-id="h3" data-asset-type="habit" title="Together but on phones">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Sofa -->
+        <rect x="4" y="48" width="52" height="20" rx="6" fill="#DDA0DD" stroke="#1A1A2E" stroke-width="1.8"/>
+        <rect x="4" y="40" width="52" height="12" rx="4" fill="#C090C0" stroke="#1A1A2E" stroke-width="1.8"/>
+        <!-- Person 1 -->
+        <ellipse cx="18" cy="36" rx="9" ry="9" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.8"/>
+        <ellipse cx="15" cy="37" rx="1.8" ry="2" fill="#1A1A2E"/>
+        <ellipse cx="21" cy="37" rx="1.8" ry="2" fill="#1A1A2E"/>
+        <!-- Phone P1 -->
+        <rect x="12" y="52" width="10" height="7" rx="1.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.5"/>
+        <!-- Person 2 -->
+        <ellipse cx="42" cy="36" rx="9" ry="9" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.8"/>
+        <ellipse cx="39" cy="37" rx="1.8" ry="2" fill="#1A1A2E"/>
+        <ellipse cx="45" cy="37" rx="1.8" ry="2" fill="#1A1A2E"/>
+        <!-- Phone P2 -->
+        <rect x="38" y="52" width="10" height="7" rx="1.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.5"/>
+        <!-- Empty speech bubble -->
+        <ellipse cx="30" cy="24" rx="9" ry="6" fill="white" stroke="#1A1A2E" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="30" y="27" text-anchor="middle" font-size="7" fill="#B2BEC3">...</text>
+      </svg>
+      <span class="asset-name">Together, alone</span>
+    </div>
+
+    <!-- H4: Late night doom scroll -->
+    <div class="asset-item" data-asset-id="h4" data-asset-type="habit" title="Late night scrolling">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Dark room -->
+        <rect x="2" y="2" width="56" height="68" rx="6" fill="#1A1A2E"/>
+        <!-- Stars -->
+        <circle cx="12" cy="10" r="1" fill="rgba(255,255,255,.5)"/>
+        <circle cx="48" cy="8" r="1.2" fill="rgba(255,255,255,.4)"/>
+        <circle cx="30" cy="6" r=".8" fill="rgba(255,255,255,.3)"/>
+        <!-- Bed -->
+        <rect x="8" y="42" width="44" height="24" rx="4" fill="#2D3436" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+        <!-- Head, lit by phone -->
+        <ellipse cx="35" cy="42" rx="10" ry="10" fill="#FFEAA7" stroke="#FF6B9D" stroke-width="1.8"/>
+        <!-- Wide awake eyes -->
+        <ellipse cx="31" cy="41" rx="2.5" ry="3" fill="#1A1A2E"/>
+        <circle cx="32.5" cy="39.5" r=".8" fill="white"/>
+        <ellipse cx="39" cy="41" rx="2.5" ry="3" fill="#1A1A2E"/>
+        <circle cx="40.5" cy="39.5" r=".8" fill="white"/>
+        <!-- Phone glow -->
+        <rect x="24" y="53" width="22" height="14" rx="2.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+        <rect x="26" y="55" width="18" height="10" rx="1.5" fill="#1E90FF" opacity=".9"/>
+        <ellipse cx="35" cy="58" rx="18" ry="8" fill="#4A90E2" opacity=".18"/>
+        <!-- Time -->
+        <text x="35" y="61" text-anchor="middle" font-size="5.5" fill="white" font-weight="bold" font-family="Nunito,sans-serif">1:00 AM</text>
+      </svg>
+      <span class="asset-name">Late night scroll</span>
+    </div>
+
+    <!-- H5: Walking + phone -->
+    <div class="asset-item" data-asset-id="h5" data-asset-type="habit" title="Phone while walking">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Ground -->
+        <line x1="4" y1="65" x2="56" y2="65" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round"/>
+        <!-- Person walking, head down -->
+        <!-- Head tilted down -->
+        <ellipse cx="30" cy="16" rx="11" ry="11" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.8" transform="rotate(20 30 16)"/>
+        <ellipse cx="27" cy="18" rx="2" ry="2.5" fill="#1A1A2E"/>
+        <ellipse cx="34" cy="20" rx="2" ry="2.5" fill="#1A1A2E"/>
+        <!-- Body leaning forward -->
+        <path d="M26 26 Q28 44 24 58" stroke="#74B9FF" stroke-width="7" stroke-linecap="round"/>
+        <path d="M30 26 Q34 44 38 58" stroke="#74B9FF" stroke-width="5" stroke-linecap="round"/>
+        <!-- Arms holding phone down -->
+        <line x1="27" y1="35" x2="18" y2="42" stroke="#FFEAA7" stroke-width="4" stroke-linecap="round"/>
+        <line x1="31" y1="35" x2="38" y2="45" stroke="#FFEAA7" stroke-width="4" stroke-linecap="round"/>
+        <!-- Phone in hands -->
+        <rect x="30" y="42" width="12" height="16" rx="2" fill="#0D1117" stroke="#4A90E2" stroke-width="1.5"/>
+        <rect x="32" y="44" width="8" height="12" rx="1" fill="#4A90E2"/>
+        <!-- Obstacles ignored -->
+        <text x="10" y="38" font-size="14">🚧</text>
+      </svg>
+      <span class="asset-name">Walk & scroll</span>
+    </div>
+
+    <!-- H6: "Just 5 more minutes" -->
+    <div class="asset-item" data-asset-id="h6" data-asset-type="habit" title="Just 5 more minutes">
+      <svg viewBox="0 0 60 72" fill="none">
+        <!-- Clock face -->
+        <circle cx="30" cy="28" r="22" fill="#FFF3CD" stroke="#1A1A2E" stroke-width="2"/>
+        <circle cx="30" cy="28" r="2.5" fill="#1A1A2E"/>
+        <!-- Hands -->
+        <line x1="30" y1="28" x2="30" y2="11" stroke="#1A1A2E" stroke-width="2" stroke-linecap="round"/>
+        <line x1="30" y1="28" x2="44" y2="34" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round"/>
+        <!-- "5 more min" speech bubble -->
+        <ellipse cx="30" cy="62" rx="26" ry="11" fill="white" stroke="#FF9F43" stroke-width="2"/>
+        <text x="30" y="59" text-anchor="middle" font-size="7" fill="#FF9F43" font-weight="bold" font-family="Nunito,sans-serif">just 5 more</text>
+        <text x="30" y="67" text-anchor="middle" font-size="7" fill="#FF9F43" font-weight="bold" font-family="Nunito,sans-serif">minutes...</text>
+        <!-- Phone in corner of clock -->
+        <rect x="36" y="38" width="12" height="8" rx="1.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.5"/>
+        <rect x="38" y="40" width="8" height="4" rx="1" fill="#4A90E2"/>
+      </svg>
+      <span class="asset-name">"5 more mins"</span>
+    </div>
+
+    <span class="picker-hint">← Click to select, then click any panel</span>
+  </div>
+
+  <div class="day-strip" id="dayStrip">
+    <!-- MORNING -->
+    <div class="day-panel">
+      <input class="panel-time-edit" value="☀️ 7:00 AM"/>
+      <svg class="panel-scene" viewBox="0 0 200 90"><rect width="200" height="90" fill="#FFF9E6"/><rect x="140" y="5" width="50" height="55" rx="3" fill="#FFE4B5" stroke="#B8860B" stroke-width="1.5"/><line x1="165" y1="5" x2="165" y2="60" stroke="#B8860B" stroke-width="1.5"/><line x1="140" y1="32" x2="190" y2="32" stroke="#B8860B" stroke-width="1.5"/><rect x="5" y="45" width="120" height="42" rx="4" fill="#A8E6CF" stroke="#1A1A2E" stroke-width="1.5"/><rect x="5" y="38" width="40" height="16" rx="3" fill="white" stroke="#1A1A2E" stroke-width="1.5"/><circle cx="160" cy="72" r="10" fill="#FF6B6B" stroke="#1A1A2E" stroke-width="1.5"/><text x="160" y="75" text-anchor="middle" font-size="8" fill="white" font-weight="bold" font-family="Nunito,sans-serif">!</text></svg>
+      <div class="drop-zone" data-panel="morning"><div class="dz-hint">👆 Click a habit<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="editable-caption" placeholder="Type your caption…">My day starts with the phone, not the morning.</textarea>
+    </div>
+    <!-- NOON -->
+    <div class="day-panel">
+      <input class="panel-time-edit" value="🍱 12:30 PM"/>
+      <svg class="panel-scene" viewBox="0 0 200 90"><rect width="200" height="90" fill="#E8F5FF"/><rect x="20" y="55" width="160" height="10" rx="3" fill="#DEB887" stroke="#1A1A2E" stroke-width="1.5"/><rect x="35" y="65" width="7" height="25" fill="#DEB887" stroke="#1A1A2E" stroke-width="1.2"/><rect x="158" y="65" width="7" height="25" fill="#DEB887" stroke="#1A1A2E" stroke-width="1.2"/><ellipse cx="80" cy="53" rx="25" ry="9" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.5"/><text x="80" y="57" text-anchor="middle" font-size="14">🍜</text><rect x="145" y="5" width="45" height="42" rx="2" fill="#87CEEB" stroke="#1A1A2E" stroke-width="1.5"/></svg>
+      <div class="drop-zone" data-panel="noon"><div class="dz-hint">👆 Click a habit<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="editable-caption" placeholder="Type your caption…">Lunch alone with the feed. Food went cold.</textarea>
+    </div>
+    <!-- EVENING -->
+    <div class="day-panel">
+      <input class="panel-time-edit" value="🌆 8:00 PM"/>
+      <svg class="panel-scene" viewBox="0 0 200 90"><rect width="200" height="90" fill="#FFE8F5"/><rect x="10" y="52" width="180" height="35" rx="8" fill="#DDA0DD" stroke="#1A1A2E" stroke-width="1.5"/><rect x="10" y="42" width="180" height="16" rx="4" fill="#C090C0" stroke="#1A1A2E" stroke-width="1.5"/><rect x="60" y="8" width="80" height="28" rx="3" fill="#1A1A2E"/><rect x="62" y="10" width="76" height="24" rx="2" fill="#4A90E2" opacity=".7"/></svg>
+      <div class="drop-zone" data-panel="evening"><div class="dz-hint">👆 Click a habit<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="editable-caption" placeholder="Type your caption…">"Together" but everyone's elsewhere.</textarea>
+    </div>
+    <!-- NIGHT -->
+    <div class="day-panel">
+      <input class="panel-time-edit" value="🌙 1:00 AM"/>
+      <svg class="panel-scene" viewBox="0 0 200 90"><rect width="200" height="90" fill="#1A1A2E"/><circle cx="20" cy="12" r="1.2" fill="rgba(255,255,255,.5)"/><circle cx="50" cy="8" r="1" fill="rgba(255,255,255,.4)"/><circle cx="170" cy="15" r="1.5" fill="rgba(255,255,255,.5)"/><circle cx="185" cy="18" r="12" fill="#FFD93D" opacity=".8"/><circle cx="190" cy="14" r="8" fill="#1A1A2E"/><rect x="10" y="50" width="180" height="38" rx="4" fill="#2D3436" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/><rect x="10" y="40" width="55" height="18" rx="3" fill="#3D4047" stroke="rgba(255,255,255,.12)" stroke-width="1.5"/><ellipse cx="120" cy="65" rx="45" ry="18" fill="#4A90E2" opacity=".12"/></svg>
+      <div class="drop-zone" data-panel="night"><div class="dz-hint">👆 Click a habit<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="editable-caption" placeholder="Type your caption…">"Just one more." 47 videos later.</textarea>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 5 · DRAG REVEAL ══ -->
+<section class="s5">
+  <div class="sec-title reveal">Drag to See the Difference</div>
+  <div class="sec-sub reveal">Same moment. Completely different experience.</div>
+  <div class="drag-wrap reveal" id="dragWrap">
+    <div class="drag-side drag-left">
+      <svg viewBox="0 0 180 200" width="170" height="190"><rect width="180" height="80" fill="#DFE6E9"/><ellipse cx="145" cy="35" rx="28" ry="18" fill="#B2BEC3" opacity=".6"/><rect x="10" y="140" width="160" height="11" rx="3" fill="#636e72" stroke="#2D3436" stroke-width="2"/><ellipse cx="90" cy="102" rx="22" ry="22" fill="#B2BEC3" stroke="#636e72" stroke-width="2"/><ellipse cx="83" cy="104" rx="3.5" ry="2.5" fill="#636e72"/><ellipse cx="97" cy="104" rx="3.5" ry="2.5" fill="#636e72"/><line x1="83" y1="113" x2="97" y2="113" stroke="#636e72" stroke-width="2"/><rect x="73" y="124" width="34" height="22" rx="4" fill="#74B9FF" stroke="#636e72" stroke-width="2"/><rect x="76" y="144" width="28" height="18" rx="3" fill="#0D1117" stroke="#4A90E2" stroke-width="2"/><rect x="78" y="146" width="24" height="14" rx="2" fill="#4A90E2"/></svg>
+      <div class="drag-label">With the scroll...</div><div class="drag-sub">Gray. Numb. Elsewhere.</div>
+    </div>
+    <div class="drag-side drag-right" id="dragRight">
+      <svg viewBox="0 0 180 200" width="170" height="190"><rect width="180" height="80" fill="#87CEEB"/><circle cx="148" cy="35" r="22" fill="#FFD93D"/><rect x="10" y="80" width="8" height="28" fill="#8B6914"/><ellipse cx="14" cy="72" rx="18" ry="20" fill="#A8E6CF"/><path d="M108 24Q113 19 118 24" stroke="#1A1A2E" stroke-width="1.5" fill="none"/><path d="M122 17Q127 12 132 17" stroke="#1A1A2E" stroke-width="1.5" fill="none"/><rect x="10" y="140" width="160" height="11" rx="3" fill="#8B6914" stroke="#1A1A2E" stroke-width="2"/><ellipse cx="90" cy="100" rx="22" ry="22" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/><ellipse cx="83" cy="98" rx="3.5" ry="4" fill="#1A1A2E"/><circle cx="85" cy="96" r="1.2" fill="white"/><ellipse cx="97" cy="98" rx="3.5" ry="4" fill="#1A1A2E"/><circle cx="99" cy="96" r="1.2" fill="white"/><path d="M82 110Q90 118 98 110" stroke="#1A1A2E" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="77" cy="107" rx="5" ry="3" fill="#FF6B9D" opacity=".35"/><ellipse cx="103" cy="107" rx="5" ry="3" fill="#FF6B9D" opacity=".35"/><rect x="73" y="122" width="34" height="22" rx="4" fill="#FF6B9D" stroke="#1A1A2E" stroke-width="2"/><line x1="73" y1="130" x2="58" y2="150" stroke="#FFEAA7" stroke-width="6" stroke-linecap="round"/><line x1="107" y1="130" x2="122" y2="150" stroke="#FFEAA7" stroke-width="6" stroke-linecap="round"/><ellipse cx="138" cy="108" rx="9" ry="7" fill="#FFD93D" stroke="#1A1A2E" stroke-width="1.5" transform="rotate(-18 138 108)"/><ellipse cx="150" cy="106" rx="8" ry="6" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.5" transform="rotate(18 150 106)"/></svg>
+      <div class="drag-label">Without the scroll...</div><div class="drag-sub">Present. Alive. Here.</div>
+    </div>
+    <div class="drag-handle" id="dragHandle"></div>
+  </div>
+  <p class="drag-hint reveal">← Drag the divider to reveal the difference</p>
+</section>
+
+<!-- ══ SECTION 6 · PHONE-FREE PLAN BUILDER ══ -->
+<section class="s6">
+  <div class="sec-title reveal">Build Your Phone-Free Plan</div>
+  <div class="sec-sub reveal">Choose an activity for each situation, then write what YOU will actually do. Commit to it!</div>
+
+  <div class="picker-bar reveal" id="propPicker">
+    <span class="picker-label">Activities →</span>
+    <div class="asset-item prop" data-asset-id="p1" data-asset-type="prop" title="Read">
+      <svg viewBox="0 0 50 50" fill="none"><rect x="6" y="8" width="38" height="32" rx="3" fill="#FF9F43" stroke="#1A1A2E" stroke-width="2"/><rect x="6" y="8" width="4" height="32" rx="1" fill="#E17A2A" stroke="#1A1A2E" stroke-width="1.5"/><line x1="14" y1="17" x2="38" y2="17" stroke="white" stroke-width="1.5" opacity=".7"/><line x1="14" y1="22" x2="38" y2="22" stroke="white" stroke-width="1.5" opacity=".5"/><line x1="14" y1="27" x2="32" y2="27" stroke="white" stroke-width="1.5" opacity=".5"/></svg>
+      <span class="asset-name">Read</span>
+    </div>
+    <div class="asset-item prop" data-asset-id="p2" data-asset-type="prop" title="Coffee">
+      <svg viewBox="0 0 50 50" fill="none"><path d="M10 22L12 42Q12 44 14 44L36 44Q38 44 38 42L40 22Z" fill="#8B4513" stroke="#1A1A2E" stroke-width="2"/><rect x="8" y="19" width="34" height="5" rx="2.5" fill="#6B3410" stroke="#1A1A2E" stroke-width="2"/><path d="M40 25Q46 28 46 34Q46 40 40 38" stroke="#1A1A2E" stroke-width="2" fill="none"/><path d="M21 12Q23 7 21 4" stroke="#AAA" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 10Q30 5 28 2" stroke="#AAA" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+      <span class="asset-name">Coffee</span>
+    </div>
+    <div class="asset-item prop" data-asset-id="p3" data-asset-type="prop" title="Music">
+      <svg viewBox="0 0 50 50" fill="none"><path d="M8 28Q8 10 25 10Q42 10 42 28" stroke="#A29BFE" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="4" y="27" width="10" height="16" rx="5" fill="#A29BFE" stroke="#1A1A2E" stroke-width="2"/><rect x="36" y="27" width="10" height="16" rx="5" fill="#A29BFE" stroke="#1A1A2E" stroke-width="2"/><circle cx="9" cy="35" r="3" fill="#7B6FF0"/><circle cx="41" cy="35" r="3" fill="#7B6FF0"/></svg>
+      <span class="asset-name">Music</span>
+    </div>
+    <div class="asset-item prop" data-asset-id="p4" data-asset-type="prop" title="Draw">
+      <svg viewBox="0 0 50 50" fill="none"><g transform="rotate(15 18 20)"><rect x="14" y="4" width="8" height="30" rx="4" fill="#FFD93D" stroke="#1A1A2E" stroke-width="2"/><rect x="14" y="33" width="8" height="6" rx="1" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.5"/><polygon points="14,38 22,38 18,44" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.5"/></g><path d="M30 30Q34 28 37 32Q40 36 36 40Q32 44 28 40Q24 36 28 32Z" fill="none" stroke="#FF6B9D" stroke-width="2"/><circle cx="32" cy="20" r="7" fill="none" stroke="#74B9FF" stroke-width="2"/></svg>
+      <span class="asset-name">Draw</span>
+    </div>
+    <div class="asset-item prop" data-asset-id="p5" data-asset-type="prop" title="Walk">
+      <svg viewBox="0 0 50 50" fill="none"><path d="M6 32Q8 20 18 18Q24 17 28 22L38 22Q44 22 44 28Q44 36 38 36L8 36Q4 36 6 32Z" fill="#55EFC4" stroke="#1A1A2E" stroke-width="2"/><path d="M18 18Q22 12 26 16" stroke="#1A1A2E" stroke-width="1.5" fill="none"/><line x1="12" y1="29" x2="36" y2="29" stroke="white" stroke-width="1.5" opacity=".6"/></svg>
+      <span class="asset-name">Walk</span>
+    </div>
+    <div class="asset-item prop" data-asset-id="p6" data-asset-type="prop" title="Nature">
+      <svg viewBox="0 0 50 50" fill="none"><rect x="16" y="36" width="18" height="12" rx="3" fill="#8B6914" stroke="#1A1A2E" stroke-width="2"/><line x1="25" y1="36" x2="25" y2="16" stroke="#2D8A2D" stroke-width="2.5" stroke-linecap="round"/><path d="M25 28Q20 20 12 22Q18 28 25 28Z" fill="#A8E6CF" stroke="#1A1A2E" stroke-width="1.5"/><path d="M25 22Q30 14 38 16Q32 22 25 22Z" fill="#55EFC4" stroke="#1A1A2E" stroke-width="1.5"/></svg>
+      <span class="asset-name">Nature</span>
+    </div>
+    <span class="picker-hint">← Click to select, then click a card</span>
+  </div>
+
+  <div class="plan-grid reveal">
+    <div class="plan-card">
+      <div class="plan-card-header" style="background:#FFF9E6"><div class="plan-card-icon">⏱</div><div class="plan-card-title">When Waiting...</div></div>
+      <div class="plan-drop drop-zone" data-picker="prop"><div class="dz-hint">Click an activity<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="plan-text" placeholder="Instead I will… (e.g. look around, notice 3 beautiful things)">Instead I will...</textarea>
+      <button class="commit-btn" onclick="toggleCommit(this)"><span class="commit-check">☐</span>&nbsp;I'll try this</button>
+    </div>
+    <div class="plan-card">
+      <div class="plan-card-header" style="background:#E8F5FF"><div class="plan-card-icon">😑</div><div class="plan-card-title">When Bored...</div></div>
+      <div class="plan-drop drop-zone" data-picker="prop"><div class="dz-hint">Click an activity<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="plan-text" placeholder="Instead I will… (e.g. go for a short walk, doodle something)">Instead I will...</textarea>
+      <button class="commit-btn" onclick="toggleCommit(this)"><span class="commit-check">☐</span>&nbsp;I'll try this</button>
+    </div>
+    <div class="plan-card">
+      <div class="plan-card-header" style="background:#FFE8F5"><div class="plan-card-icon">🌙</div><div class="plan-card-title">When Resting...</div></div>
+      <div class="plan-drop drop-zone" data-picker="prop"><div class="dz-hint">Click an activity<br>then click here</div><button class="remove-btn" type="button">×</button></div>
+      <textarea class="plan-text" placeholder="Instead I will… (e.g. listen to music, just close my eyes)">Instead I will...</textarea>
+      <button class="commit-btn" onclick="toggleCommit(this)"><span class="commit-check">☐</span>&nbsp;I'll try this</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 7 · RECORD BOARD ══ -->
+<section class="s7">
+  <div class="sec-title reveal">🏅 Your Record Board</div>
+  <div class="sec-sub reveal">Every time you chose NOT to scroll, that counts. Log it here.</div>
+  <div class="record-board reveal">
+    <div class="counter-wrap"><div class="counter-num" id="counterNum">0</div><div class="counter-lbl">phone-free moments logged</div></div>
+    <div class="btn-row">
+      <button class="btn-cnt btn-minus" onclick="updateCount(-1)">−</button>
+      <button class="btn-cnt btn-plus" onclick="updateCount(1)">+</button>
+    </div>
+    <div class="msg-box" id="msgBox">Start logging your phone-free moments! 📝</div>
+    <div class="badges"><div class="badge" data-min="1">🌱</div><div class="badge" data-min="3">⭐</div><div class="badge" data-min="5">🔥</div><div class="badge" data-min="8">💪</div><div class="badge" data-min="10">🏆</div></div>
+    <div class="log-section">
+      <div class="log-row"><input id="logInput" class="log-input" type="text" placeholder="What did you do instead?" maxlength="80"/><button class="btn-add" onclick="addEntry()">Log it</button></div>
+      <div class="log-entries" id="logList"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SECTION 8 · PROJECT INFO ══ -->
+<section class="s8">
+  <div class="s8-label">Project Info</div><div class="s8-title">Scroll Free</div>
+  <p class="s8-desc">An interactive digital story exploring phone addiction and the quiet moments we lose to the scroll — and how to gently reclaim them.</p>
+  <div class="meta-grid">
+    <div class="meta-item reveal"><h3>Title</h3><p>Scroll Free: An Interactive Story About You and Your Phone</p></div>
+    <div class="meta-item reveal"><h3>Description</h3><p>A scroll-based interactive comic story that walks users through a day of phone addiction, reveals the psychological trap behind it, and invites them to build their own phone-free plan — ending with a personal habit tracker.</p></div>
+    <div class="meta-item reveal"><h3>Intended Audience</h3><p>Young adults aged 16–30 who recognise their own compulsive scrolling habits but haven't found a concrete way to change them.</p></div>
+    <div class="meta-item reveal"><h3>Plan for Dissemination</h3><p>Share via social media link, display during the final class showcase, embed as a QR code poster in school common areas, and distribute via class group chat.</p></div>
+  </div>
+  <p style="margin-top:3rem;color:rgba(255,255,255,0.15);font-size:0.78rem">Made with ✨ for a world with less scrolling and more presence.</p>
+</section>
+
+<!-- ════════════════════════════════════════════ SCRIPTS ════════════════════════════════════════════ -->
+<script>
+/* ── HERO TIMER ──────────────────── */
+const t0=Date.now();
+setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);document.getElementById('heroTimer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},1000);
+
+/* ── HERO TIKTOK FEED ───────────── */
+(function(){
+  const palettes=[
+    ['#FF6B9D','#C850C0'],['#4ECDC4','#2193b0'],['#FFD93D','#FF6B35'],
+    ['#A29BFE','#6C5CE7'],['#74B9FF','#0984e3'],['#FF9F43','#ee5a24'],
+    ['#55EFC4','#00b894'],['#FD79A8','#e84393'],['#FDCB6E','#e17055'],
+    ['#00cec9','#0984e3'],['#6c5ce7','#a29bfe'],['#fd79a8','#d63031']
+  ];
+  const users=['@scrolling.daily','@vibes.only','@lostinthe.feed','@dopamine.loop','@just5more.mins','@infinitescroll_','@cant.stop.wont','@feedme.content','@late.night.swipe','@one.more.video'];
+  const likes=['2.4M','891K','12.1M','4.7K','338K','1.1M','67.2K','9.2M','445K','3.3M'];
+  const comments=['14.2K','3.1K','892K','1.2K','22.8K','5.4K','334','41.2K','8.8K','19K'];
+  const shares=['1.2K','445','8.8K','234','12.1K','988','55','18K','2.2K','5.6K'];
+  const captions=[
+    "you ever just lose 3 hours and not know where they went 😭",
+    "POV: you said 5 more minutes at 11pm and now its 2am",
+    "the algorithm knows you better than you know yourself",
+    "living for the scroll, dying inside 🫀",
+    "my screen time report has me in shambles rn",
+    "when you open tiktok to relax and suddenly its 3am",
+    "cant sleep. wont sleep. will scroll instead.",
+    "babe wake up new content dropped",
+    "dopamine machine go brrrr 📱",
+    "tell me youre addicted without telling me"
+  ];
+  const tags=[
+    ['#screentime','#scrolling','#relatable'],
+    ['#addiction','#tiktokbrain','#fyp'],
+    ['#dopamine','#mentalhealth','#honest'],
+    ['#phoneaddict','#foryou','#real'],
+    ['#scrolltrap','#latenight','#same']
+  ];
+  const sounds=['Original sound - user','trending audio 🎵','viral sound 2026','lo-fi beats to scroll to','POV audio ✨'];
+
+  const NUM_CARDS = 12;
+  const bg = document.getElementById('feedBg');
+  const strip = document.createElement('div');
+  strip.className = 'tiktok-strip';
+  strip.id = 'tkStrip';
+
+  for(let i = 0; i < NUM_CARDS; i++){
+    const pal = palettes[i % palettes.length];
+    const card = document.createElement('div');
+    card.className = 'tiktok-card';
+
+    // full-screen gradient background
+    const bg2 = document.createElement('div');
+    bg2.className = 'tk-bg';
+    bg2.style.cssText = `background:linear-gradient(${160 + i*25}deg, ${pal[0]} 0%, ${pal[1]} 60%, rgba(0,0,0,0.4) 100%);`;
+
+    // inner decorative circle
+    const circle = document.createElement('div');
+    circle.style.cssText = `position:absolute;width:70vw;height:70vw;border-radius:50%;background:rgba(255,255,255,0.07);top:${10+i*3}%;left:${-10+i%3*10}%;pointer-events:none;`;
+    bg2.appendChild(circle);
+
+    // avatar circle on sidebar
+    const avColor = palettes[(i+3)%palettes.length][0];
+
+    // sidebar
+    const sidebar = document.createElement('div');
+    sidebar.className = 'tk-sidebar';
+    sidebar.innerHTML = `
+      <div class="tk-sidebar-btn">
+        <div class="tk-avatar-wrap">
+          <div class="tk-avatar-circle" style="background:${avColor}"></div>
+          <div class="tk-plus-badge">+</div>
+        </div>
+      </div>
+      <div class="tk-sidebar-btn">
+        <div class="tk-sidebar-icon">❤️</div>
+        <div class="tk-sidebar-count">${likes[i%likes.length]}</div>
+      </div>
+      <div class="tk-sidebar-btn">
+        <div class="tk-sidebar-icon">💬</div>
+        <div class="tk-sidebar-count">${comments[i%comments.length]}</div>
+      </div>
+      <div class="tk-sidebar-btn">
+        <div class="tk-sidebar-icon">↪️</div>
+        <div class="tk-sidebar-count">${shares[i%shares.length]}</div>
+      </div>
+      <div class="tk-sidebar-btn">
+        <div class="tk-sidebar-icon">⋯</div>
+      </div>`;
+
+    // bottom info
+    const tagStr = tags[i%tags.length].map(t=>`<span style="font-weight:700">${t}</span>`).join(' ');
+    const bottom = document.createElement('div');
+    bottom.className = 'tk-bottom';
+    bottom.innerHTML = `
+      <div class="tk-username">${users[i%users.length]}</div>
+      <div class="tk-caption">${captions[i%captions.length]}</div>
+      <div class="tk-hashtags">${tagStr}</div>
+      <div class="tk-music"><span class="tk-disc">💿</span> ${sounds[i%sounds.length]}</div>`;
+
+    card.append(bg2, sidebar, bottom);
+    strip.appendChild(card);
+  }
+
+  bg.appendChild(strip);
+
+  // auto-advance every 2.8s
+  let current = 0;
+  function advance(){
+    current = (current + 1) % NUM_CARDS;
+    strip.style.transform = `translateY(-${current * 100}vh)`;
+  }
+  setInterval(advance, 2800);
+})();
+
+/* ── SCROLL REVEAL ───────────────── */
+const rObs=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible')}),{threshold:.1});
+document.querySelectorAll('.reveal').forEach(el=>rObs.observe(el));
+const dObs=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.querySelectorAll('.day-panel').forEach((p,i)=>setTimeout(()=>p.classList.add('visible'),i*160))}),{threshold:.1});
+const ds=document.getElementById('dayStrip');if(ds)dObs.observe(ds);
+
+/* ── ASSET SVG DATA ──────────────── */
+const SVG={
+/* ── Habit stickers (h1–h6) for Section 4 ── */
+h1:`<svg viewBox="0 0 80 96" fill="none">
+  <rect x="4" y="50" width="72" height="40" rx="6" fill="#A8E6CF" stroke="#1A1A2E" stroke-width="2"/>
+  <rect x="4" y="40" width="26" height="18" rx="4" fill="white" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="56" cy="50" rx="14" ry="14" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+  <line x1="50" y1="49" x2="54" y2="49" stroke="#1A1A2E" stroke-width="2" stroke-linecap="round"/>
+  <line x1="58" y1="49" x2="62" y2="49" stroke="#1A1A2E" stroke-width="2" stroke-linecap="round"/>
+  <rect x="40" y="18" width="26" height="18" rx="3" fill="#0D1117" stroke="#4A90E2" stroke-width="2"/>
+  <rect x="42" y="20" width="22" height="14" rx="2" fill="#4A90E2"/>
+  <line x1="46" y1="24" x2="60" y2="24" stroke="white" stroke-width="1.2" opacity=".7"/>
+  <line x1="46" y1="28" x2="60" y2="28" stroke="white" stroke-width="1.2" opacity=".5"/>
+  <ellipse cx="56" cy="36" rx="18" ry="6" fill="#4A90E2" opacity=".15"/>
+</svg>`,
+h2:`<svg viewBox="0 0 80 96" fill="none">
+  <rect x="8" y="58" width="64" height="9" rx="3" fill="#DEB887" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="28" cy="56" rx="17" ry="7" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.8"/>
+  <text x="28" y="60" text-anchor="middle" font-size="14">🍜</text>
+  <path d="M20 47 Q21 41 20 35" stroke="#CCC" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <rect x="50" y="32" width="18" height="28" rx="3" fill="#0D1117" stroke="#4A90E2" stroke-width="2"/>
+  <rect x="52" y="34" width="14" height="24" rx="2" fill="#4A90E2"/>
+  <line x1="55" y1="39" x2="63" y2="39" stroke="white" stroke-width="1.2" opacity=".7"/>
+  <line x1="55" y1="44" x2="63" y2="44" stroke="white" stroke-width="1.2" opacity=".5"/>
+  <line x1="55" y1="49" x2="63" y2="49" stroke="white" stroke-width="1.2" opacity=".5"/>
+  <ellipse cx="59" cy="22" rx="13" ry="13" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="55" cy="24" rx="2.5" ry="3" fill="#1A1A2E"/>
+  <ellipse cx="63" cy="24" rx="2.5" ry="3" fill="#1A1A2E"/>
+</svg>`,
+h3:`<svg viewBox="0 0 80 96" fill="none">
+  <rect x="4" y="62" width="72" height="28" rx="7" fill="#DDA0DD" stroke="#1A1A2E" stroke-width="2"/>
+  <rect x="4" y="52" width="72" height="16" rx="5" fill="#C090C0" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="22" cy="46" rx="12" ry="12" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="18" cy="48" rx="2.2" ry="2.6" fill="#1A1A2E"/>
+  <ellipse cx="26" cy="48" rx="2.2" ry="2.6" fill="#1A1A2E"/>
+  <rect x="14" y="67" width="14" height="9" rx="2" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+  <ellipse cx="58" cy="46" rx="12" ry="12" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2"/>
+  <ellipse cx="54" cy="48" rx="2.2" ry="2.6" fill="#1A1A2E"/>
+  <ellipse cx="62" cy="48" rx="2.2" ry="2.6" fill="#1A1A2E"/>
+  <rect x="52" y="67" width="14" height="9" rx="2" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+  <ellipse cx="40" cy="30" rx="12" ry="8" fill="white" stroke="#1A1A2E" stroke-width="1.8" stroke-dasharray="4,2.5"/>
+  <text x="40" y="33" text-anchor="middle" font-size="9" fill="#B2BEC3">...</text>
+</svg>`,
+h4:`<svg viewBox="0 0 80 96" fill="none">
+  <rect x="2" y="2" width="76" height="92" rx="7" fill="#1A1A2E"/>
+  <circle cx="16" cy="12" r="1.2" fill="rgba(255,255,255,.5)"/>
+  <circle cx="64" cy="10" r="1.5" fill="rgba(255,255,255,.4)"/>
+  <circle cx="40" cy="7" r="1" fill="rgba(255,255,255,.3)"/>
+  <rect x="10" y="56" width="60" height="34" rx="5" fill="#2D3436" stroke="rgba(255,255,255,.15)" stroke-width="1.8"/>
+  <ellipse cx="48" cy="56" rx="13" ry="13" fill="#FFEAA7" stroke="#FF6B9D" stroke-width="2"/>
+  <ellipse cx="44" cy="55" rx="3" ry="3.5" fill="#1A1A2E"/>
+  <circle cx="46" cy="53" r="1" fill="white"/>
+  <ellipse cx="52" cy="55" rx="3" ry="3.5" fill="#1A1A2E"/>
+  <circle cx="54" cy="53" r="1" fill="white"/>
+  <rect x="30" y="70" width="30" height="18" rx="3" fill="#0D1117" stroke="#4A90E2" stroke-width="2"/>
+  <rect x="32" y="72" width="26" height="14" rx="2" fill="#1E90FF" opacity=".9"/>
+  <ellipse cx="45" cy="78" rx="24" ry="10" fill="#4A90E2" opacity=".18"/>
+  <text x="45" y="82" text-anchor="middle" font-size="6.5" fill="white" font-weight="bold" font-family="Nunito,sans-serif">1:00 AM</text>
+</svg>`,
+h5:`<svg viewBox="0 0 80 96" fill="none">
+  <line x1="4" y1="88" x2="76" y2="88" stroke="#B2BEC3" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="40" cy="20" rx="14" ry="14" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="2" transform="rotate(18 40 20)"/>
+  <ellipse cx="36" cy="22" rx="2.5" ry="3" fill="#1A1A2E"/>
+  <ellipse cx="44" cy="24" rx="2.5" ry="3" fill="#1A1A2E"/>
+  <path d="M35 34 Q37 56 32 76" stroke="#74B9FF" stroke-width="8" stroke-linecap="round"/>
+  <path d="M40 34 Q45 56 50 76" stroke="#74B9FF" stroke-width="6" stroke-linecap="round"/>
+  <line x1="36" y1="46" x2="24" y2="55" stroke="#FFEAA7" stroke-width="5" stroke-linecap="round"/>
+  <line x1="41" y1="46" x2="52" y2="58" stroke="#FFEAA7" stroke-width="5" stroke-linecap="round"/>
+  <rect x="43" y="56" width="15" height="20" rx="2.5" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+  <rect x="45" y="58" width="11" height="16" rx="1.5" fill="#4A90E2"/>
+  <text x="14" y="50" font-size="17">🚧</text>
+</svg>`,
+h6:`<svg viewBox="0 0 80 96" fill="none">
+  <circle cx="40" cy="36" r="28" fill="#FFF3CD" stroke="#1A1A2E" stroke-width="2.5"/>
+  <circle cx="40" cy="36" r="3" fill="#1A1A2E"/>
+  <line x1="40" y1="36" x2="40" y2="14" stroke="#1A1A2E" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="40" y1="36" x2="57" y2="43" stroke="#FF6B6B" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="40" cy="81" rx="34" ry="14" fill="white" stroke="#FF9F43" stroke-width="2.2"/>
+  <text x="40" y="77" text-anchor="middle" font-size="9" fill="#FF9F43" font-weight="bold" font-family="Nunito,sans-serif">just 5 more</text>
+  <text x="40" y="88" text-anchor="middle" font-size="9" fill="#FF9F43" font-weight="bold" font-family="Nunito,sans-serif">minutes...</text>
+  <rect x="48" y="50" width="15" height="10" rx="2" fill="#0D1117" stroke="#4A90E2" stroke-width="1.8"/>
+  <rect x="50" y="52" width="11" height="6" rx="1" fill="#4A90E2"/>
+</svg>`,
+p1:`<svg viewBox="0 0 50 50" fill="none"><rect x="6" y="8" width="38" height="32" rx="3" fill="#FF9F43" stroke="#1A1A2E" stroke-width="2"/><rect x="6" y="8" width="4" height="32" rx="1" fill="#E17A2A" stroke="#1A1A2E" stroke-width="1.5"/><line x1="14" y1="17" x2="38" y2="17" stroke="white" stroke-width="1.5" opacity=".7"/><line x1="14" y1="22" x2="38" y2="22" stroke="white" stroke-width="1.5" opacity=".5"/><line x1="14" y1="27" x2="32" y2="27" stroke="white" stroke-width="1.5" opacity=".5"/></svg>`,
+p2:`<svg viewBox="0 0 50 50" fill="none"><path d="M10 22L12 42Q12 44 14 44L36 44Q38 44 38 42L40 22Z" fill="#8B4513" stroke="#1A1A2E" stroke-width="2"/><rect x="8" y="19" width="34" height="5" rx="2.5" fill="#6B3410" stroke="#1A1A2E" stroke-width="2"/><path d="M40 25Q46 28 46 34Q46 40 40 38" stroke="#1A1A2E" stroke-width="2" fill="none"/><path d="M21 12Q23 7 21 4" stroke="#AAA" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 10Q30 5 28 2" stroke="#AAA" stroke-width="2" fill="none" stroke-linecap="round"/></svg>`,
+p3:`<svg viewBox="0 0 50 50" fill="none"><path d="M8 28Q8 10 25 10Q42 10 42 28" stroke="#A29BFE" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="4" y="27" width="10" height="16" rx="5" fill="#A29BFE" stroke="#1A1A2E" stroke-width="2"/><rect x="36" y="27" width="10" height="16" rx="5" fill="#A29BFE" stroke="#1A1A2E" stroke-width="2"/><circle cx="9" cy="35" r="3" fill="#7B6FF0"/><circle cx="41" cy="35" r="3" fill="#7B6FF0"/></svg>`,
+p4:`<svg viewBox="0 0 50 50" fill="none"><g transform="rotate(15 18 20)"><rect x="14" y="4" width="8" height="30" rx="4" fill="#FFD93D" stroke="#1A1A2E" stroke-width="2"/><rect x="14" y="33" width="8" height="6" rx="1" fill="#FF9F43" stroke="#1A1A2E" stroke-width="1.5"/><polygon points="14,38 22,38 18,44" fill="#FFEAA7" stroke="#1A1A2E" stroke-width="1.5"/></g><path d="M30 30Q34 28 37 32Q40 36 36 40Q32 44 28 40Q24 36 28 32Z" fill="none" stroke="#FF6B9D" stroke-width="2"/><circle cx="32" cy="20" r="7" fill="none" stroke="#74B9FF" stroke-width="2"/></svg>`,
+p5:`<svg viewBox="0 0 50 50" fill="none"><path d="M6 32Q8 20 18 18Q24 17 28 22L38 22Q44 22 44 28Q44 36 38 36L8 36Q4 36 6 32Z" fill="#55EFC4" stroke="#1A1A2E" stroke-width="2"/><path d="M18 18Q22 12 26 16" stroke="#1A1A2E" stroke-width="1.5" fill="none"/><line x1="12" y1="29" x2="36" y2="29" stroke="white" stroke-width="1.5" opacity=".6"/></svg>`,
+p6:`<svg viewBox="0 0 50 50" fill="none"><rect x="16" y="36" width="18" height="12" rx="3" fill="#8B6914" stroke="#1A1A2E" stroke-width="2"/><line x1="25" y1="36" x2="25" y2="16" stroke="#2D8A2D" stroke-width="2.5" stroke-linecap="round"/><path d="M25 28Q20 20 12 22Q18 28 25 28Z" fill="#A8E6CF" stroke="#1A1A2E" stroke-width="1.5"/><path d="M25 22Q30 14 38 16Q32 22 25 22Z" fill="#55EFC4" stroke="#1A1A2E" stroke-width="1.5"/></svg>`
+};
+
+/* ── CLICK-TO-SELECT / CLICK-TO-PLACE ── */
+let sel=null; // { id, type, pickerId }
+
+document.querySelectorAll('.asset-item').forEach(item=>{
+  item.setAttribute('draggable','true');
+  item.addEventListener('click',()=>{
+    const pid=item.closest('.picker-bar').id;
+    document.querySelectorAll(`#${pid} .asset-item`).forEach(a=>a.classList.remove('selected'));
+    if(sel&&sel.id===item.dataset.assetId){sel=null;document.body.classList.remove('has-selection');return}
+    item.classList.add('selected');
+    sel={id:item.dataset.assetId,type:item.dataset.assetType,pickerId:pid};
+    document.body.classList.add('has-selection');
+    showN('✅ Selected! Now click a panel to place.');
+  });
+  item.addEventListener('dragstart',e=>{e.dataTransfer.setData('assetId',item.dataset.assetId);e.dataTransfer.setData('assetType',item.dataset.assetType);item.style.opacity='.5'});
+  item.addEventListener('dragend',()=>{item.style.opacity=''});
+});
+
+function place(zone,id){
+  const svg=SVG[id];if(!svg)return;
+  let c=zone.querySelector('.dz-content');if(c)c.remove();
+  const h=zone.querySelector('.dz-hint');if(h)h.style.display='none';
+  const w=document.createElement('div');w.className='dz-content';w.innerHTML=svg;
+  const s=w.querySelector('svg');s.style.maxHeight='95px';s.style.maxWidth='85px';
+  zone.insertBefore(w,zone.querySelector('.remove-btn'));
+  zone.classList.add('has-asset');zone.dataset.placed=id;
+  zone.querySelector('.remove-btn').onclick=e=>{e.stopPropagation();w.remove();if(h)h.style.display='';zone.classList.remove('has-asset');delete zone.dataset.placed};
+}
+
+document.querySelectorAll('.drop-zone').forEach(z=>{
+  z.addEventListener('click',()=>{
+    if(!sel){showN('👆 First click a habit or activity above!');return}
+    const isProp=z.dataset.picker==='prop';
+    if(isProp&&sel.type!=='prop'){showN('💡 Use the activities row for this card!');return}
+    if(!isProp&&sel.type!=='habit'){showN('💡 Use the habits row for the comic panels!');return}
+    place(z,sel.id);
+    sel=null;document.body.classList.remove('has-selection');
+    document.querySelectorAll('.asset-item').forEach(a=>a.classList.remove('selected'));
+    showN('🎉 Placed! Drag another or edit the caption.');
+  });
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag-over')});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag-over'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag-over');const id=e.dataTransfer.getData('assetId');if(id)place(z,id)});
+});
+
+/* ── COMMIT BUTTON ───────────────── */
+function toggleCommit(b){const c=b.classList.toggle('committed');b.innerHTML=c?`<span class="commit-check">✓</span>&nbsp;Committed!`:`<span class="commit-check">☐</span>&nbsp;I'll try this`;if(c)showN("🌟 Committed! You've got this.")}
+
+/* ── DRAG REVEAL (S5) ────────────── */
+const dW=document.getElementById('dragWrap'),dH=document.getElementById('dragHandle'),dR=document.getElementById('dragRight');let dg=false;
+function aD(x){if(!dW)return;const r=dW.getBoundingClientRect(),p=Math.max(2,Math.min(98,((x-r.left)/r.width)*100));dH.style.left=p+'%';dR.style.clipPath=`inset(0 ${100-p}% 0 0)`}
+window.addEventListener('load',()=>aD(dW.getBoundingClientRect().left+dW.offsetWidth*.5));
+dW.addEventListener('mousedown',e=>{dg=true;aD(e.clientX)});dW.addEventListener('touchstart',e=>{dg=true;aD(e.touches[0].clientX)},{passive:true});
+window.addEventListener('mousemove',e=>{if(dg)aD(e.clientX)});window.addEventListener('touchmove',e=>{if(dg)aD(e.touches[0].clientX)},{passive:true});
+window.addEventListener('mouseup',()=>dg=false);window.addEventListener('touchend',()=>dg=false);
+
+/* ── RECORD BOARD ────────────────── */
+let cnt=0;const MS=[[0,'Start logging your phone-free moments! 📝'],[1,"That's 1! Every small choice matters. 🌱"],[2,"Two down. Building something real. ✨"],[3,"Three moments of real presence. ⭐"],[5,"Five! You're on a roll. 🔥"],[8,"Eight times you chose you over the feed. 💪"],[10,"TEN! Screen-Free Hero today. 🏆🎉"]];
+function gM(n){let m=MS[0][1];MS.forEach(([v,t])=>{if(n>=v)m=t});return m}
+function updateCount(d){cnt=Math.max(0,cnt+d);const el=document.getElementById('counterNum');el.textContent=cnt;el.style.transform='scale(1.3)';setTimeout(()=>el.style.transform='scale(1)',200);document.getElementById('msgBox').textContent=gM(cnt);document.querySelectorAll('.badge').forEach(b=>{const s=cnt>=parseInt(b.dataset.min);if(s&&!b.classList.contains('earned'))b.classList.add('earned');else if(!s)b.classList.remove('earned')});if(d>0)showN('✅ Nice one! Logged.');try{localStorage.setItem('sfC',cnt)}catch(e){}}
+function addEntry(){const i=document.getElementById('logInput'),t=i.value.trim();if(!t)return;const tm=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});const e=document.createElement('div');e.className='log-entry';e.innerHTML=`<div>${t}</div><div class="log-time">📍 ${tm}</div>`;document.getElementById('logList').prepend(e);i.value='';updateCount(1);try{const l=JSON.parse(localStorage.getItem('sfL')||'[]');l.unshift({text:t,time:tm});localStorage.setItem('sfL',JSON.stringify(l.slice(0,60)))}catch(e){}}
+document.getElementById('logInput').addEventListener('keydown',e=>{if(e.key==='Enter')addEntry()});
+try{const s=parseInt(localStorage.getItem('sfC')||'0');if(s>0){cnt=s;document.getElementById('counterNum').textContent=cnt;document.getElementById('msgBox').textContent=gM(cnt);updateCount(0)}JSON.parse(localStorage.getItem('sfL')||'[]').forEach(({text,time})=>{const e=document.createElement('div');e.className='log-entry';e.innerHTML=`<div>${text}</div><div class="log-time">📍 ${time}</div>`;document.getElementById('logList').appendChild(e)})}catch(e){}
+
+/* ── NOTIFICATION ────────────────── */
+let nT=null;function showN(m){const el=document.getElementById('notif');el.textContent=m;el.classList.add('show');clearTimeout(nT);nT=setTimeout(()=>el.classList.remove('show'),2800)}
+</script>
+</body>
+</html>
