@@ -828,15 +828,30 @@ document.querySelectorAll('.asset-item').forEach(item=>{
 });
 
 function place(zone,id){
-  const svg=SVG[id];if(!svg)return;
+  const svgStr=SVG[id];if(!svgStr)return;
   let c=zone.querySelector('.dz-content');if(c)c.remove();
   const h=zone.querySelector('.dz-hint');if(h)h.style.display='none';
   const w=document.createElement('div');
   w.className='dz-content';
-  w.style.cssText='display:flex;align-items:center;justify-content:center;width:100%;height:100%;';
-  w.innerHTML=svg;
-  const s=w.querySelector('svg');
-  if(s){s.style.maxHeight='95px';s.style.maxWidth='85px';s.style.display='block';}
+  w.style.cssText='display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:80px;';
+  // Use text/html parsing — works on all browsers including Safari
+  const parser=new DOMParser();
+  const doc=parser.parseFromString('<body>'+svgStr+'</body>','text/html');
+  const s=doc.querySelector('svg');
+  if(s){
+    s.setAttribute('width','85');
+    s.setAttribute('height','90');
+    s.style.cssText='display:block;max-width:85px;max-height:90px;';
+    w.appendChild(document.adoptNode(s));
+  } else {
+    // absolute fallback: use img with data URI
+    const blob=new Blob([svgStr],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const img=document.createElement('img');
+    img.src=url;img.style.cssText='max-width:85px;max-height:90px;display:block;';
+    img.onload=()=>URL.revokeObjectURL(url);
+    w.appendChild(img);
+  }
   zone.insertBefore(w,zone.querySelector('.remove-btn'));
   zone.classList.add('has-asset');zone.dataset.placed=id;
   const rb=zone.querySelector('.remove-btn');
